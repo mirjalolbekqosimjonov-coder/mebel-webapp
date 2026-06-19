@@ -285,10 +285,17 @@ async def admin_add_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int
         "_(IDni bilish uchun @userinfobot ga /start yuboring)_",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton("❌ Bekor qilish", callback_data="adm_admins")
+            InlineKeyboardButton("❌ Bekor qilish", callback_data="adm_add_cancel")
         ]]),
     )
     return ADMIN_ADD
+
+
+async def admin_add_cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    q = update.callback_query
+    await q.answer()
+    await _show_admins(q)
+    return ConversationHandler.END
 
 
 async def admin_add_handle(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
@@ -381,7 +388,10 @@ def main():
         states={
             SETTING_SELECT: [CallbackQueryHandler(setting_select, pattern="^set_")],
             SETTING_VALUE:  [MessageHandler(filters.TEXT & ~filters.COMMAND, setting_value)],
-            ADMIN_ADD:      [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_add_handle)],
+            ADMIN_ADD: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, admin_add_handle),
+                CallbackQueryHandler(admin_add_cancel, pattern="^adm_add_cancel$"),
+            ],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True,
@@ -389,10 +399,10 @@ def main():
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp))
-    app.add_handler(CallbackQueryHandler(adm_open,      pattern="^adm_open$"))
-    app.add_handler(CallbackQueryHandler(admin_remove,  pattern="^adm_rm_"))
-    app.add_handler(CallbackQueryHandler(adm_callback,  pattern="^adm_"))
-    app.add_handler(settings_conv)
+    app.add_handler(settings_conv)                                         # ConversationHandler birinchi!
+    app.add_handler(CallbackQueryHandler(adm_open,     pattern="^adm_open$"))
+    app.add_handler(CallbackQueryHandler(admin_remove, pattern="^adm_rm_"))
+    app.add_handler(CallbackQueryHandler(adm_callback, pattern="^adm_"))
 
     log.info("Bot ishga tushdi...")
     app.run_polling(allowed_updates=Update.ALL_TYPES)

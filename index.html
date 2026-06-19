@@ -19,9 +19,35 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text);
-      padding: 12px 14px 80px;
+      padding: 12px 14px 90px;
       font-size: 15px;
     }
+
+    /* ── Mode tabs ── */
+    .mode-tabs {
+      display: flex;
+      background: var(--sec);
+      border-radius: 10px;
+      padding: 3px;
+      margin-bottom: 14px;
+    }
+    .mode-tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--hint);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .mode-tab.active {
+      background: var(--btn);
+      color: var(--btn-t);
+    }
+
     h2 { font-size: 18px; font-weight: 700; margin-bottom: 14px; }
 
     .card {
@@ -59,7 +85,7 @@
     .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .field label { font-size: 12px; color: var(--hint); display: block; margin-bottom: 4px; }
-    .field input {
+    .field input, .field select {
       width: 100%;
       padding: 9px 10px;
       border-radius: 8px;
@@ -92,8 +118,8 @@
     .green { color: #27ae60; }
     .red   { color: #e74c3c; }
 
-    /* Save button */
-    #btn-save {
+    /* Save buttons */
+    #btn-save, #btn-save-panels {
       position: fixed;
       bottom: 0; left: 0; right: 0;
       padding: 14px;
@@ -106,14 +132,128 @@
       display: none;
     }
     #btn-save.show { display: block; }
+    #btn-save-panels.show { display: block; }
     .hidden { display: none !important; }
+
+    /* ── Panel list mode ── */
+    .panel-card {
+      background: var(--sec);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .panel-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .panel-num {
+      font-size: 12px;
+      color: var(--hint);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .btn-remove {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(231,76,60,.15);
+      color: #e74c3c;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .panel-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .panel-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .field-sm label { font-size: 11px; color: var(--hint); display: block; margin-bottom: 3px; }
+    .field-sm input, .field-sm select {
+      width: 100%;
+      padding: 8px 9px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+    .panel-name-input {
+      width: 100%;
+      padding: 8px 9px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .btn-add-panel {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px dashed rgba(128,128,128,.3);
+      background: transparent;
+      color: var(--btn);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    #panel-summary { display: none; }
+    #panel-summary.show { display: block; }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      font-size: 14px;
+    }
+    .summary-row .lbl { color: var(--hint); }
+    .summary-row .val { font-weight: 500; }
+    .summary-total {
+      display: flex;
+      justify-content: space-between;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 5px 0;
+    }
+    .sell-input-wrap { margin-top: 10px; }
+    .sell-input-wrap label { font-size: 12px; color: var(--hint); display: block; margin-bottom: 4px; }
+    .sell-input-wrap input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid var(--btn);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      outline: none;
+    }
   </style>
 </head>
 <body>
 
 <h2>🪑 Mebel hisob-kitob</h2>
 
-<!-- Mebel turi -->
+<!-- Mode tabs -->
+<div class="mode-tabs">
+  <button class="mode-tab active" onclick="setMode('standard')">Standart</button>
+  <button class="mode-tab" onclick="setMode('panels')">📐 Panellar</button>
+</div>
+
+<!-- ══════════════════ STANDART MODE ══════════════════ -->
+<div id="standard-mode">
+
 <div class="card">
   <div class="card-title">Mebel turi</div>
   <div class="chips" id="fur-chips">
@@ -124,7 +264,6 @@
   </div>
 </div>
 
-<!-- O'lchamlar (oshxona / shkaf) -->
 <div class="card" id="dims-card">
   <div class="card-title">O'lchamlar (sm)</div>
   <div class="row3">
@@ -134,7 +273,6 @@
   </div>
 </div>
 
-<!-- Divan o'lchami -->
 <div class="card hidden" id="divan-card">
   <div class="card-title">O'lchami (sm)</div>
   <div class="chips" id="dsz-chips">
@@ -145,7 +283,6 @@
   </div>
 </div>
 
-<!-- Stol o'lchami -->
 <div class="card hidden" id="stol-card">
   <div class="card-title">Stol o'lchami</div>
   <div class="chips" id="tsz-chips">
@@ -155,7 +292,6 @@
   </div>
 </div>
 
-<!-- Material -->
 <div class="card">
   <div class="card-title">Material</div>
   <div class="chips" id="mat-chips">
@@ -164,7 +300,6 @@
   </div>
 </div>
 
-<!-- Oshxona qo'shimchasi -->
 <div class="card" id="osh-extra">
   <div class="card-title">Aksessuarlar</div>
   <div class="row2">
@@ -173,7 +308,6 @@
   </div>
 </div>
 
-<!-- Shkaf qo'shimchasi -->
 <div class="card hidden" id="shk-extra">
   <div class="card-title">Qo'shimcha</div>
   <div class="row2">
@@ -188,7 +322,6 @@
   </div>
 </div>
 
-<!-- Divan qo'shimchasi -->
 <div class="card hidden" id="div-extra">
   <div class="card-title">Saqlash joyi (yashik)</div>
   <div class="chips" id="stor-chips">
@@ -197,7 +330,6 @@
   </div>
 </div>
 
-<!-- Stol qo'shimchasi -->
 <div class="card hidden" id="stl-extra">
   <div class="card-title">Stullar soni</div>
   <div class="chips" id="ch-chips">
@@ -208,7 +340,6 @@
   </div>
 </div>
 
-<!-- Natija -->
 <div class="card" id="result-card">
   <div class="card-title">📦 Materiallar</div>
   <div id="mat-list"></div>
@@ -218,13 +349,40 @@
   <div class="total-row"><span id="r-profit-lbl">📈 Foyda</span><span id="r-profit"></span></div>
 </div>
 
-<button id="btn-save" onclick="save()">✅ Saqlash</button>
+</div><!-- /standard-mode -->
+
+<!-- ══════════════════ PANEL LIST MODE ══════════════════ -->
+<div id="panels-mode" class="hidden">
+
+  <div id="panel-list"></div>
+
+  <button class="btn-add-panel" onclick="addPanel()">＋ Panel qo'shish</button>
+
+  <div class="card" id="panel-summary">
+    <div class="card-title">📦 Jami hisob</div>
+    <div id="ps-rows"></div>
+    <hr/>
+    <div class="summary-total"><span>💰 Material xarajati</span><span id="ps-mat"></span></div>
+    <div class="sell-input-wrap">
+      <label>💵 Sotish narxi (so'm) — qo'lda kiriting</label>
+      <input type="number" id="ps-sell-input" placeholder="0" oninput="updatePanelProfit()" />
+    </div>
+    <hr style="margin-top:10px"/>
+    <div class="summary-total">
+      <span id="ps-profit-lbl">📈 Foyda</span>
+      <span id="ps-profit">—</span>
+    </div>
+  </div>
+
+</div><!-- /panels-mode -->
+
+<button id="btn-save"        onclick="save()">✅ Saqlash</button>
+<button id="btn-save-panels" onclick="savePanels()">✅ Saqlash</button>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.ready(); tg.expand();
 
-// URL parametrlaridan narxlarni olish
 const P = Object.fromEntries(
   ['ldsp_cost','mdf_cost','xdf_cost','edge_cost','hinge_cost','handle_cost','screw_cost','ldsp_sell','mdf_sell']
   .map(k => [k, parseFloat(new URLSearchParams(location.search).get(k) || {
@@ -234,9 +392,27 @@ const P = Object.fromEntries(
   }[k])])
 );
 
-let RES = null;
+let currentMode = 'standard';
+let STD_RES = null;
 
-// ── Chip yordamchi ──────────────────────────────────────────────────────────
+// ── Mode switcher ────────────────────────────────────────────────────────────
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && mode === 'standard') || (i === 1 && mode === 'panels'));
+  });
+  document.getElementById('standard-mode').classList.toggle('hidden', mode !== 'standard');
+  document.getElementById('panels-mode').classList.toggle('hidden', mode !== 'panels');
+  document.getElementById('btn-save').style.display = (mode === 'standard' && STD_RES) ? 'block' : 'none';
+  document.getElementById('btn-save-panels').style.display = (mode === 'panels' && panelItems.length > 0) ? 'block' : 'none';
+}
+
+// ══════════════════ STANDART MODE ══════════════════
+
+function chipVal(id) {
+  const el = document.querySelector(`#${id} .chip.on`);
+  return el ? el.dataset.v : null;
+}
 function initChips(id) {
   document.querySelectorAll(`#${id} .chip`).forEach(c => {
     c.addEventListener('click', () => {
@@ -247,13 +423,12 @@ function initChips(id) {
     });
   });
 }
-function chipVal(id) {
-  const el = document.querySelector(`#${id} .chip.on`);
-  return el ? el.dataset.v : null;
-}
 ['fur-chips','mat-chips','dsz-chips','tsz-chips','mirror-chips','stor-chips','ch-chips'].forEach(initChips);
+['width','height','depth','doors','drawers','sections'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', calc);
+});
 
-// ── Mebel turini almashtirish ────────────────────────────────────────────────
 function switchFur(fur) {
   const show = id => document.getElementById(id).classList.remove('hidden');
   const hide = id => document.getElementById(id).classList.add('hidden');
@@ -264,7 +439,6 @@ function switchFur(fur) {
   if (fur === 'stol')    { show('stol-card'); show('stl-extra'); }
 }
 
-// ── Yordamchi ────────────────────────────────────────────────────────────────
 const fmt = n => Math.round(n).toLocaleString('ru-RU') + ' so\'m';
 
 function build(mat, bodyArea, xdfArea, edgeM, hinges, handles) {
@@ -286,7 +460,6 @@ function build(mat, bodyArea, xdfArea, edgeM, hinges, handles) {
   };
 }
 
-// ── Hisob formulalari ────────────────────────────────────────────────────────
 function calcOshxona(w,h,d,mat,doors,drawers) {
   const [W,H,D] = [w/100, h/100, d/100];
   const ns = Math.ceil(H/0.4);
@@ -317,7 +490,6 @@ function calcStol(tsz,chairs,mat) {
   return Object.assign(r, {tableSize:tsz,chairs});
 }
 
-// ── Asosiy hisob ─────────────────────────────────────────────────────────────
 function calc() {
   const fur = chipVal('fur-chips');
   const mat = chipVal('mat-chips');
@@ -336,21 +508,19 @@ function calc() {
     }
   } catch(e){r=null;}
 
-  RES = r;
+  STD_RES = r;
   const rc = document.getElementById('result-card');
-  const bs = document.getElementById('btn-save');
-  if (!r) { rc.classList.remove('show'); bs.classList.remove('show'); return; }
+  if (!r) { rc.classList.remove('show'); document.getElementById('btn-save').style.display='none'; return; }
 
-  // Ro'yxat
   const rows = [[r.mat+' panel', r.bodyArea.toFixed(2)+' m²', r.bodyCost]];
   if (r.xdfArea>0) rows.push(['XDF orqa', r.xdfArea.toFixed(2)+' m²', r.xdfCost]);
   rows.push(['Qirra lenta', r.edgeM.toFixed(1)+' m', r.edgeCost]);
-  if (r.hinges>0)       rows.push(['Petlyalar',     r.hinges+' dona', r.hingeCost]);
-  if (r.handles>0)      rows.push(['Tutqichlar',    r.handles+' dona', r.handleCost]);
+  if (r.hinges>0)      rows.push(['Petlyalar',    r.hinges+' dona', r.hingeCost]);
+  if (r.handles>0)     rows.push(['Tutqichlar',   r.handles+' dona', r.handleCost]);
   rows.push(["Vintlar to'plami", '', r.screwCost]);
-  if (r.mirrorCost>0)   rows.push(["Ko'zgu", '', r.mirrorCost]);
-  if (r.storageCost>0)  rows.push(['Saqlash joyi', '', r.storageCost]);
-  if (r.chairCost>0)    rows.push([`Stullar (${r.chairs} ta)`, '', r.chairCost]);
+  if (r.mirrorCost>0)  rows.push(["Ko'zgu", '', r.mirrorCost]);
+  if (r.storageCost>0) rows.push(['Saqlash joyi', '', r.storageCost]);
+  if (r.chairCost>0)   rows.push([`Stullar (${r.chairs} ta)`, '', r.chairCost]);
 
   document.getElementById('mat-list').innerHTML = rows.map(([l,q,c])=>
     `<div class="mat-row"><span class="lbl">${l}${q?' <small>('+q+')</small>':''}</span><span class="val">${fmt(c)}</span></div>`
@@ -364,41 +534,179 @@ function calc() {
   pLbl.textContent = r.profit>=0 ? '📈 Foyda' : '📉 Zarar';
 
   rc.classList.add('show');
-  bs.classList.add('show');
+  if (currentMode === 'standard') document.getElementById('btn-save').style.display = 'block';
 }
 
-// ── Saqlash ───────────────────────────────────────────────────────────────────
 function save() {
-  if (!RES) return;
+  if (!STD_RES) return;
   const fur = chipVal('fur-chips');
   const names = {oshxona:'Oshxona mebeli',shkaf:'Shkaf/Kupe',divan:'Divan/Krovat',stol:'Stol/Stul'};
   let extra = '';
-  if (fur==='oshxona') extra=`${RES.doors} eshik, ${RES.drawers} tortma`;
-  if (fur==='shkaf')   extra=`${RES.sections} bo'lim, ko'zgu=${RES.mirror?'Ha':'Yoq'}`;
-  if (fur==='divan')   extra=`${RES.divanSize}, saqlash=${RES.storage?'Ha':'Yoq'}`;
-  if (fur==='stol')    extra=`${RES.tableSize}, ${RES.chairs} stul`;
-
+  if (fur==='oshxona') extra=`${STD_RES.doors} eshik, ${STD_RES.drawers} tortma`;
+  if (fur==='shkaf')   extra=`${STD_RES.sections} bo'lim, ko'zgu=${STD_RES.mirror?'Ha':'Yoq'}`;
+  if (fur==='divan')   extra=`${STD_RES.divanSize}, saqlash=${STD_RES.storage?'Ha':'Yoq'}`;
+  if (fur==='stol')    extra=`${STD_RES.tableSize}, ${STD_RES.chairs} stul`;
   tg.sendData(JSON.stringify({
-    furniture: names[fur],
-    material:  RES.mat,
-    width:     RES.width  || null,
-    height:    RES.height || null,
-    depth:     RES.depth  || null,
+    furniture: names[fur], material: STD_RES.mat,
+    width: STD_RES.width||null, height: STD_RES.height||null, depth: STD_RES.depth||null,
     extra,
-    body_area:  +RES.bodyArea.toFixed(4),
-    xdf_area:   +RES.xdfArea.toFixed(4),
-    edge_m:     +RES.edgeM.toFixed(2),
-    hinges:     RES.hinges,
-    handles:    RES.handles,
-    screw_sets: RES.screwSets,
-    mat_cost:   Math.round(RES.matCost),
-    sell_price: Math.round(RES.sellPrice),
-    profit:     Math.round(RES.profit),
-    profit_pct: +RES.profitPct.toFixed(2),
+    body_area: +STD_RES.bodyArea.toFixed(4), xdf_area: +STD_RES.xdfArea.toFixed(4),
+    edge_m: +STD_RES.edgeM.toFixed(2), hinges: STD_RES.hinges, handles: STD_RES.handles,
+    screw_sets: STD_RES.screwSets, mat_cost: Math.round(STD_RES.matCost),
+    sell_price: Math.round(STD_RES.sellPrice), profit: Math.round(STD_RES.profit),
+    profit_pct: +STD_RES.profitPct.toFixed(2),
   }));
 }
 
-// Boshlang'ich holat
+// ══════════════════ PANEL LIST MODE ══════════════════
+
+let panelItems = [];
+let nextId = 0;
+let _panelCalc = null;
+
+function addPanel() {
+  panelItems.push({ id: nextId++, name: '', w: '', h: '', qty: 1, mat: 'LDSP', edges: 2 });
+  renderPanelList();
+}
+
+function removePanel(id) {
+  panelItems = panelItems.filter(p => p.id !== id);
+  renderPanelList();
+}
+
+function onPanelChange(id, field, value) {
+  const p = panelItems.find(x => x.id === id);
+  if (!p) return;
+  p[field] = (field === 'name' || field === 'mat') ? value : (+value || 0);
+  calcPanels();
+}
+
+function renderPanelList() {
+  document.getElementById('panel-list').innerHTML = panelItems.map((p, i) => `
+    <div class="panel-card">
+      <div class="panel-card-header">
+        <span class="panel-num">Panel #${i + 1}</span>
+        <button class="btn-remove" onclick="removePanel(${p.id})">×</button>
+      </div>
+      <input class="panel-name-input" type="text" placeholder="Nomi (masalan: Yon panel)"
+        value="${p.name}" oninput="onPanelChange(${p.id},'name',this.value)" />
+      <div class="panel-grid-3">
+        <div class="field-sm">
+          <label>Kenglik (mm)</label>
+          <input type="number" value="${p.w||''}" placeholder="600" min="1"
+            oninput="onPanelChange(${p.id},'w',this.value)" />
+        </div>
+        <div class="field-sm">
+          <label>Balandlik (mm)</label>
+          <input type="number" value="${p.h||''}" placeholder="720" min="1"
+            oninput="onPanelChange(${p.id},'h',this.value)" />
+        </div>
+        <div class="field-sm">
+          <label>Soni</label>
+          <input type="number" value="${p.qty}" min="1"
+            oninput="onPanelChange(${p.id},'qty',this.value)" />
+        </div>
+      </div>
+      <div class="panel-grid-2">
+        <div class="field-sm">
+          <label>Material</label>
+          <select onchange="onPanelChange(${p.id},'mat',this.value)">
+            ${['LDSP','MDF','XDF'].map(m=>`<option value="${m}" ${m===p.mat?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field-sm">
+          <label>Qirra tomonlar (0–4)</label>
+          <select onchange="onPanelChange(${p.id},'edges',this.value)">
+            ${[0,1,2,3,4].map(e=>`<option value="${e}" ${e===p.edges?'selected':''}>${e} tomon</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  calcPanels();
+}
+
+function calcPanels() {
+  const btn = document.getElementById('btn-save-panels');
+  if (panelItems.length === 0) {
+    document.getElementById('panel-summary').classList.remove('show');
+    btn.style.display = 'none';
+    return;
+  }
+
+  let ldspArea=0, mdfArea=0, xdfArea=0, edgeM=0, matCost=0;
+
+  for (const p of panelItems) {
+    if (!p.w || !p.h || !p.qty) continue;
+    const area  = (p.w / 1000) * (p.h / 1000) * p.qty;
+    const perim = (p.w + p.h) * 2 / 1000 * p.qty;
+    const edge  = perim * (p.edges / 4);
+
+    if (p.mat === 'LDSP') { ldspArea += area; matCost += area * P.ldsp_cost; }
+    else if (p.mat === 'MDF') { mdfArea += area; matCost += area * P.mdf_cost; }
+    else if (p.mat === 'XDF') { xdfArea += area; matCost += area * P.xdf_cost; }
+
+    edgeM   += edge;
+    matCost += edge * P.edge_cost;
+  }
+
+  const rows = [];
+  if (ldspArea > 0) rows.push(['LDSP panel', ldspArea.toFixed(3)+' m²', ldspArea * P.ldsp_cost]);
+  if (mdfArea  > 0) rows.push(['MDF panel',  mdfArea.toFixed(3) +' m²', mdfArea  * P.mdf_cost]);
+  if (xdfArea  > 0) rows.push(['XDF panel',  xdfArea.toFixed(3) +' m²', xdfArea  * P.xdf_cost]);
+  if (edgeM    > 0) rows.push(['Qirra lenta', edgeM.toFixed(2)  +' m',  edgeM    * P.edge_cost]);
+
+  document.getElementById('ps-rows').innerHTML = rows.map(([l,q,c])=>
+    `<div class="summary-row"><span class="lbl">${l} <small>(${q})</small></span><span class="val">${fmt(c)}</span></div>`
+  ).join('');
+
+  document.getElementById('ps-mat').textContent = fmt(matCost);
+  document.getElementById('panel-summary').classList.add('show');
+
+  _panelCalc = { ldspArea, mdfArea, xdfArea, edgeM, matCost };
+  updatePanelProfit();
+
+  if (currentMode === 'panels') btn.style.display = 'block';
+}
+
+function updatePanelProfit() {
+  if (!_panelCalc) return;
+  const sell   = +document.getElementById('ps-sell-input').value || 0;
+  const profit = sell - _panelCalc.matCost;
+  const pct    = sell > 0 ? profit / sell * 100 : 0;
+  const pEl    = document.getElementById('ps-profit');
+  const pLbl   = document.getElementById('ps-profit-lbl');
+  pEl.textContent  = sell > 0 ? `${fmt(profit)} (${pct.toFixed(1)}%)` : '—';
+  pEl.className    = profit >= 0 ? 'green' : 'red';
+  pLbl.textContent = profit >= 0 ? '📈 Foyda' : '📉 Zarar';
+}
+
+function savePanels() {
+  if (!_panelCalc) return;
+  const { ldspArea, mdfArea, xdfArea, edgeM, matCost } = _panelCalc;
+  const sell      = +document.getElementById('ps-sell-input').value || 0;
+  const profit    = sell - matCost;
+  const profitPct = sell > 0 ? profit / sell * 100 : 0;
+  const extra     = panelItems.filter(p=>p.w&&p.h)
+    .map(p=>`${p.name||'Panel'} ${p.w}×${p.h}×${p.qty} ${p.mat}`).join('; ').slice(0,200);
+
+  tg.sendData(JSON.stringify({
+    furniture: "Panel ro'yxati",
+    material: [ldspArea>0?'LDSP':'', mdfArea>0?'MDF':'', xdfArea>0?'XDF':''].filter(Boolean).join('+') || '—',
+    width: null, height: null, depth: null,
+    extra,
+    body_area:  +(ldspArea+mdfArea).toFixed(4),
+    xdf_area:   +xdfArea.toFixed(4),
+    edge_m:     +edgeM.toFixed(2),
+    hinges: 0, handles: 0, screw_sets: 0,
+    mat_cost:   Math.round(matCost),
+    sell_price: Math.round(sell),
+    profit:     Math.round(profit),
+    profit_pct: +profitPct.toFixed(2),
+  }));
+}
+
+// Init
 switchFur('oshxona');
 calc();
 </script>

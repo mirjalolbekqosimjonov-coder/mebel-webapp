@@ -15,16 +15,20 @@ from config import BOT_TOKEN, ADMIN_IDS, WEBAPP_URL
 from database import (
     init_db, get_settings, update_setting, save_calc,
     get_recent, get_all, SETTING_LABELS, DEFAULT_SETTINGS,
+    get_extra_admins, get_extra_admin_ids, add_admin, remove_admin,
 )
 
 logging.basicConfig(format="%(asctime)s - %(levelname)s - %(message)s", level=logging.INFO)
 log = logging.getLogger(__name__)
 
-SETTING_SELECT, SETTING_VALUE = range(2)
+SETTING_SELECT, SETTING_VALUE, ADMIN_ADD = range(3)
 
 
 # ── Yordamchi ─────────────────────────────────────────────────────────────────
 def is_admin(uid: int) -> bool:
+    return uid in ADMIN_IDS or uid in get_extra_admin_ids()
+
+def is_super_admin(uid: int) -> bool:
     return uid in ADMIN_IDS
 
 def fmt(n: float) -> str:
@@ -34,14 +38,17 @@ def webapp_url() -> str:
     prices = get_settings()
     return f"{WEBAPP_URL}?{urlencode(prices)}"
 
-def admin_kb() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([
+def admin_kb(uid: int = 0) -> InlineKeyboardMarkup:
+    rows = [
         [InlineKeyboardButton("⚙️ Narxlar sozlamasi", callback_data="adm_settings")],
         [
             InlineKeyboardButton("📋 Oxirgi hisoblar", callback_data="adm_history"),
             InlineKeyboardButton("📥 Excel",           callback_data="adm_export"),
         ],
-    ])
+    ]
+    if is_super_admin(uid):
+        rows.append([InlineKeyboardButton("👥 Adminlar", callback_data="adm_admins")])
+    return InlineKeyboardMarkup(rows)
 
 def settings_kb() -> InlineKeyboardMarkup:
     s = get_settings()
@@ -124,12 +131,13 @@ async def handle_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
 async def adm_open(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     q = update.callback_query
     await q.answer()
-    if not is_admin(q.from_user.id):
+    uid = q.from_user.id
+    if not is_admin(uid):
         return
     await q.edit_message_text(
         "🔧 *Admin panel*",
         parse_mode="Markdown",
-        reply_markup=admin_kb(),
+        reply_markup=admin_kb(uid),
     )
 
 
@@ -146,6 +154,10 @@ async def adm_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int | 
             reply_markup=settings_kb(),
         )
         return SETTING_SELECT
+
+    if q.data == "adm_admins":
+        await _show_admins(q)
+        return None
 
     if q.data == "adm_history":
         rows = get_recent(15)
@@ -232,6 +244,86 @@ async def cancel(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+# ── Admin boshqaruvi ──────────────────────────────────────────────────────────
+def admins_kb() -> InlineKeyboardMarkup:
+    rows = []
+    for uid, uname, added_at in get_extra_admins():
+        label = f"👤 {uname or uid}  ✖ O'chirish"
+        rows.append([InlineKeyboardButton(label, callback_data=f"adm_rm_{uid}")])
+    rows.append([InlineKeyboardButton("➕ Admin qo'shish", callback_data="adm_add_admin")])
+    rows.append([InlineKeyboardButton("🔙 Orqaga",         callback_data="adm_open")])
+    return InlineKeyboardMarkup(rows)
+
+
+async def _show_admins(q) -> None:
+    extra = get_extra_admins()
+    lines = ["👥 *Adminlar ro'yxati*\n"]
+    lines.append("🔑 *Asosiy adminlar (o'zgartirib bo'lmaydi):*")
+    for aid in ADMIN_IDS:
+        lines.append(f"  • `{aid}`")
+    if extra:
+        lines.append("\n👤 *Qo'shilgan adminlar:*")
+        for uid, uname, added_at in extra:
+            lines.append(f"  • {uname or '—'} (`{uid}`) — {added_at}")
+    else:
+        lines.append("\n_Hali qo'shilgan admin yo'q._")
+    await q.edit_message_text(
+        "\n".join(lines),
+        parse_mode="Markdown",
+        reply_markup=admins_kb(),
+    )
+
+
+async def admin_add_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    q = update.callback_query
+    await q.answer()
+    if not is_super_admin(q.from_user.id):
+        return ConversationHandler.END
+    await q.edit_message_text(
+        "➕ *Yangi admin qo'shish*\n\n"
+        "Foydalanuvchining Telegram ID sini yuboring.\n"
+        "_(IDni bilish uchun @userinfobot ga /start yuboring)_",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton("❌ Bekor qilish", callback_data="adm_admins")
+        ]]),
+    )
+    return ADMIN_ADD
+
+
+async def admin_add_handle(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+    if not is_super_admin(update.effective_user.id):
+        return ConversationHandler.END
+    text = update.message.text.strip()
+    try:
+        new_id = int(text)
+    except ValueError:
+        await update.message.reply_text("❌ Faqat raqam kiriting (masalan: 123456789):")
+        return ADMIN_ADD
+
+    if new_id in ADMIN_IDS:
+        await update.message.reply_text("⚠️ Bu foydalanuvchi allaqachon asosiy admin.")
+        return ConversationHandler.END
+
+    add_admin(new_id, str(new_id))
+    await update.message.reply_text(
+        f"✅ `{new_id}` admin sifatida qo'shildi.\n"
+        "Endi u admin paneldan foydalana oladi.",
+        parse_mode="Markdown",
+    )
+    return ConversationHandler.END
+
+
+async def admin_remove(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
+    q = update.callback_query
+    await q.answer()
+    if not is_super_admin(q.from_user.id):
+        return
+    uid = int(q.data.split("_")[2])
+    remove_admin(uid)
+    await _show_admins(q)
+
+
 # ── Excel eksport ─────────────────────────────────────────────────────────────
 async def _send_excel(q) -> None:
     from openpyxl import Workbook
@@ -282,10 +374,14 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     settings_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(setting_select, pattern="^set_")],
+        entry_points=[
+            CallbackQueryHandler(setting_select,  pattern="^set_"),
+            CallbackQueryHandler(admin_add_start, pattern="^adm_add_admin$"),
+        ],
         states={
             SETTING_SELECT: [CallbackQueryHandler(setting_select, pattern="^set_")],
             SETTING_VALUE:  [MessageHandler(filters.TEXT & ~filters.COMMAND, setting_value)],
+            ADMIN_ADD:      [MessageHandler(filters.TEXT & ~filters.COMMAND, admin_add_handle)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True,
@@ -293,8 +389,9 @@ def main():
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_webapp))
-    app.add_handler(CallbackQueryHandler(adm_open,     pattern="^adm_open$"))
-    app.add_handler(CallbackQueryHandler(adm_callback, pattern="^adm_"))
+    app.add_handler(CallbackQueryHandler(adm_open,      pattern="^adm_open$"))
+    app.add_handler(CallbackQueryHandler(admin_remove,  pattern="^adm_rm_"))
+    app.add_handler(CallbackQueryHandler(adm_callback,  pattern="^adm_"))
     app.add_handler(settings_conv)
 
     log.info("Bot ishga tushdi...")

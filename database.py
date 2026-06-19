@@ -40,6 +40,12 @@ def init_db():
         value REAL NOT NULL
     )""")
 
+    c.execute("""CREATE TABLE IF NOT EXISTS admins (
+        user_id   INTEGER PRIMARY KEY,
+        user_name TEXT,
+        added_at  TEXT NOT NULL
+    )""")
+
     c.execute("""CREATE TABLE IF NOT EXISTS calculations (
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         timestamp    TEXT NOT NULL,
@@ -119,3 +125,34 @@ def get_all():
     rows = conn.execute("SELECT * FROM calculations ORDER BY id DESC").fetchall()
     conn.close()
     return rows
+
+
+def get_extra_admins() -> list:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("SELECT user_id, user_name, added_at FROM admins ORDER BY added_at").fetchall()
+    conn.close()
+    return rows
+
+
+def get_extra_admin_ids() -> set:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("SELECT user_id FROM admins").fetchall()
+    conn.close()
+    return {r[0] for r in rows}
+
+
+def add_admin(user_id: int, user_name: str):
+    from datetime import datetime, timedelta
+    added_at = (datetime.utcnow() + timedelta(hours=5)).strftime("%d.%m.%Y %H:%M")
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("INSERT OR REPLACE INTO admins (user_id, user_name, added_at) VALUES (?,?,?)",
+                 (user_id, user_name, added_at))
+    conn.commit()
+    conn.close()
+
+
+def remove_admin(user_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM admins WHERE user_id=?", (user_id,))
+    conn.commit()
+    conn.close()

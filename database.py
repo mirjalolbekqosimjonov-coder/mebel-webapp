@@ -107,8 +107,10 @@ def save_calc(user_id, user_name, furniture, material,
          width, height, depth, extra,
          body_area, xdf_area, edge_meters, hinges, handles, screw_sets,
          mat_cost, sell_price, profit, profit_pct))
+    order_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
     conn.commit()
     conn.close()
+    return order_id
 
 
 def get_recent(limit=20):

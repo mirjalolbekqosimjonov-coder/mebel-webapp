@@ -1,7 +1,8 @@
 import json
 import logging
-from io import BytesIO
 from urllib.parse import urlencode
+
+from pdf_gen import make_order_pdf, make_report_pdf
 
 from telegram import (
     Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo,
@@ -42,8 +43,8 @@ def admin_kb(uid: int = 0) -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton("⚙️ Narxlar sozlamasi", callback_data="adm_settings")],
         [
-            InlineKeyboardButton("📋 Oxirgi hisoblar", callback_data="adm_history"),
-            InlineKeyboardButton("📥 Excel",           callback_data="adm_export"),
+            InlineKeyboardButton("📋 Oxirgi hisoblar",  callback_data="adm_history"),
+            InlineKeyboardButton("📥 PDF Hisobot",      callback_data="adm_pdf"),
         ],
     ]
     if is_super_admin(uid):
@@ -89,9 +90,10 @@ async def handle_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_text("❌ Ma'lumotni o'qishda xato.")
         return
 
-    save_calc(
+    customer = update.effective_user.full_name or update.effective_user.username or "Noma'lum"
+    order_id = save_calc(
         update.effective_user.id,
-        update.effective_user.full_name or update.effective_user.username,
+        customer,
         d.get("furniture"), d.get("material"),
         d.get("width"), d.get("height"), d.get("depth"),
         d.get("extra", ""),
@@ -110,6 +112,17 @@ async def handle_webapp(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
         f"{p_icon} Foyda: *{fmt(d.get('profit',0))} so'm* ({d.get('profit_pct',0):.1f}%)"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
+
+    # PDF buyurtma varog'ini yuborish
+    try:
+        pdf_buf = make_order_pdf(d, order_id, customer, get_settings())
+        from telegram import BufferedInputFile
+        pdf_file = BufferedInputFile(
+            pdf_buf.read(), filename=f"buyurtma_{order_id}.pdf"
+        )
+        await update.message.reply_document(pdf_file, caption="📄 Buyurtma varog'i")
+    except Exception as e:
+        log.warning(f"PDF yaratishda xato: {e}")
 
     # Adminga xabar
     if ADMIN_IDS:
@@ -189,8 +202,8 @@ async def adm_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int | 
         )
         return None
 
-    if q.data == "adm_export":
-        await _send_excel(q)
+    if q.data == "adm_pdf":
+        await _send_pdf_report(q)
         return None
 
     return None
@@ -331,48 +344,20 @@ async def admin_remove(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> None:
     await _show_admins(q)
 
 
-# ── Excel eksport ─────────────────────────────────────────────────────────────
-async def _send_excel(q) -> None:
-    from openpyxl import Workbook
-    from openpyxl.styles import Font, PatternFill, Alignment
-
+# ── PDF hisobot (admin) ───────────────────────────────────────────────────────
+async def _send_pdf_report(q) -> None:
     rows = get_all()
     if not rows:
         await q.answer("📭 Ma'lumot yo'q!", show_alert=True)
         return
-
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Hisoblar"
-    headers = [
-        "ID", "Sana", "Foydalanuvchi", "Mebel", "Material",
-        "Kenglik", "Balandlik", "Chuqurlik", "Qo'shimcha",
-        "Panel m²", "XDF m²", "Qirra m", "Petlya", "Tutqich", "Vintlar",
-        "Material xarajati", "Sotish narxi", "Foyda", "Foyda %",
-    ]
-    ws.append(headers)
-    for cell in ws[1]:
-        cell.font      = Font(bold=True, color="FFFFFF")
-        cell.fill      = PatternFill("solid", fgColor="1a5276")
-        cell.alignment = Alignment(horizontal="center")
-    for row in rows:
-        ws.append(list(row))
-    for col in ws.columns:
-        w = max(len(str(c.value or "")) for c in col)
-        ws.column_dimensions[col[0].column_letter].width = min(w + 3, 30)
-
-    out = BytesIO()
-    wb.save(out)
-    out.seek(0)
-
     try:
+        pdf_buf = make_report_pdf(rows)
         from telegram import BufferedInputFile
-        f = BufferedInputFile(out.read(), filename="mebel_hisoblar.xlsx")
-    except ImportError:
-        from telegram import InputFile
-        f = InputFile(out, filename="mebel_hisoblar.xlsx")
-
-    await q.message.reply_document(f, caption="📊 Excel hisobot tayyor!")
+        f = BufferedInputFile(pdf_buf.read(), filename="umebel_hisobot.pdf")
+        await q.message.reply_document(f, caption="📊 PDF hisobot tayyor!")
+    except Exception as e:
+        log.warning(f"Hisobot PDF xato: {e}")
+        await q.answer("❌ PDF yaratishda xato!", show_alert=True)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
